@@ -201,4 +201,133 @@ Este projeto está sob a licença ISC. Veja o arquivo [LICENSE](LICENSE) para ma
 
 Diogo Crespi - [@seu_twitter](https://twitter.com/seu_twitter)
 
-Link do Projeto: [https://github.com/DiogoCrespi/AtenBot](https://github.com/DiogoCrespi/AtenBot) 
+Link do Projeto: [https://github.com/DiogoCrespi/AtenBot](https://github.com/DiogoCrespi/AtenBot)
+
+# AtenBot API
+
+API para gerenciamento de usuários e conversas para o AtenBot.
+
+## Rotas de Usuários
+
+### Listar todos os usuários
+`GET /api/users`
+
+### Buscar usuário por ID
+`GET /api/users/{id}`
+
+### Criar novo usuário
+`POST /api/users`
+```json
+{
+  "name": "Nome do Usuário",
+  "email": "email@exemplo.com",
+  "password": "senha123",
+  "role": "user"
+}
+```
+
+### Atualizar usuário
+`PUT /api/users/{id}`
+```json
+{
+  "name": "Novo Nome",
+  "email": "novoemail@exemplo.com"
+}
+```
+
+### Deletar usuário
+`DELETE /api/users/{id}`
+
+---
+
+## Rotas de Conversas
+
+### Listar todas as conversas
+`GET /api/conversations`
+
+### Buscar conversa por ID
+`GET /api/conversations/{id}`
+
+### Criar nova conversa
+`POST /api/conversations`
+```json
+{
+  "userId": "ID_DO_USUARIO",
+  "phoneNumber": "5511999999999"
+}
+```
+
+### Atualizar conversa
+`PUT /api/conversations/{id}`
+```json
+{
+  "status": "closed"
+}
+```
+
+### Deletar conversa
+`DELETE /api/conversations/{id}`
+
+### Buscar conversas por número de telefone
+`GET /api/conversations/phone/{phoneNumber}`
+
+### Buscar conversas por status
+`GET /api/conversations/status/{status}`
+
+---
+
+## Rotas de Mensagens
+
+### Listar todas as mensagens
+`GET /api/messages`
+
+### Buscar mensagem por ID
+`GET /api/messages/{id}`
+
+### Listar mensagens de uma conversa
+`GET /api/messages/conversation/{conversationId}`
+
+### Criar nova mensagem
+`POST /api/messages`
+```json
+{
+  "conversationId": "ID_DA_CONVERSA",
+  "content": "Olá, tudo bem?",
+  "direction": "incoming",
+  "type": "text"
+}
+```
+
+### Atualizar mensagem
+`PUT /api/messages/{id}`
+```json
+{
+  "content": "Mensagem editada",
+  "status": "read"
+}
+```
+
+### Deletar mensagem
+`DELETE /api/messages/{id}`
+
+---
+
+## Resposta padrão da API
+
+A maioria das respostas será em JSON. Em caso de erro, será retornado um objeto com a chave `error` e a descrição do problema.
+
+---
+
+## Inicialização do servidor
+
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+2. Configure o arquivo `.env` com as variáveis do banco de dados.
+3. Inicie o servidor:
+   ```bash
+   npm run dev
+   ```
+
+O servidor estará disponível em `http://localhost:3000`. 

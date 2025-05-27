@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const syncDatabase = require('./config/syncDatabase');
 const userRoutes = require('./routes/userRoutes');
+const conversationRoutes = require('./routes/conversationRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 
@@ -12,6 +14,8 @@ app.use(express.json());
 
 // Rotas
 app.use('/api/users', userRoutes);
+app.use('/api/conversations', conversationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {
@@ -29,7 +33,7 @@ async function startServer() {
     // Inicia o servidor
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`📝 Ambiente: ${process.env.NODE_ENV}`);
+      console.log(`📝 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
     console.error('❌ Erro ao iniciar o servidor:', error);
