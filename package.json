@@ -1,0 +1,35 @@
+{
+  "name": "atenbot",
+  "version": "1.0.0",
+  "description": "Chatbot inteligente para atendimento jurídico via WhatsApp",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "whatsapp",
+    "chatbot",
+    "openai",
+    "n8n",
+    "juridico"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.23.0",
+    "openai": "^4.0.0",
+    "pg": "^8.11.0",
+    "sequelize": "^6.35.0",
+    "jsonwebtoken": "^9.0.0",
+    "winston": "^3.11.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
+  }
+} 
