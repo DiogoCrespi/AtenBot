@@ -5,7 +5,7 @@ AtenBot é um chatbot inteligente especializado em atendimento automatizado para
 ## 🚀 Tecnologias
 
 - **Backend:** Node.js + Express.js
-- **Banco de Dados:** PostgreSQL
+- **Banco de Dados:** PostgreSQL (Docker)
 - **Integração WhatsApp:** whatsapp-web.js
 - **IA:** OpenAI GPT-4
 - **Orquestração:** N8N
@@ -15,7 +15,7 @@ AtenBot é um chatbot inteligente especializado em atendimento automatizado para
 ## 📋 Pré-requisitos
 
 - Node.js (v14 ou superior)
-- PostgreSQL
+- Docker e Docker Compose
 - N8N instalado e configurado
 - Conta OpenAI com acesso à API
 - WhatsApp Web
@@ -39,16 +39,64 @@ cp .env.example .env
 ```
 Edite o arquivo `.env` com suas configurações.
 
-4. Configure o banco de dados:
+4. Inicie o banco de dados PostgreSQL usando Docker:
 ```bash
-# Crie um banco de dados PostgreSQL chamado 'atenbot'
-createdb atenbot
+docker-compose up -d
 ```
 
 5. Inicie o servidor:
 ```bash
 npm run dev
 ```
+
+## 🐳 Docker
+
+O projeto utiliza Docker para rodar o PostgreSQL. O arquivo `docker-compose.yml` configura:
+
+```yaml
+services:
+  postgres:
+    image: postgres:15
+    container_name: atenbot_postgres
+    environment:
+      POSTGRES_DB: atenbot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: AtenBot@2024!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+### Comandos Docker úteis:
+
+- Iniciar o banco de dados:
+```bash
+docker-compose up -d
+```
+
+- Parar o banco de dados:
+```bash
+docker-compose down
+```
+
+- Ver logs do container:
+```bash
+docker-compose logs -f
+```
+
+- Verificar status do container:
+```bash
+docker ps
+```
+
+### Credenciais do Banco de Dados:
+
+- Host: `localhost`
+- Porta: `5432`
+- Banco: `atenbot`
+- Usuário: `postgres`
+- Senha: `AtenBot@2024!`
 
 ## ⚙️ Configuração
 
