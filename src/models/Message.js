@@ -36,7 +36,7 @@ const Message = sequelize.define('Message', {
     },
   },
   status: {
-    type: DataTypes.ENUM('sent', 'delivered', 'read', 'failed'),
+    type: DataTypes.ENUM('sent', 'delivered', 'read', 'failed', 'received'),
     defaultValue: 'sent',
   },
   error: {

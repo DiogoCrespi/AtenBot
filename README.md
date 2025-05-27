@@ -330,4 +330,27 @@ A maioria das respostas será em JSON. Em caso de erro, será retornado um objet
    npm run dev
    ```
 
-O servidor estará disponível em `http://localhost:3000`. 
+O servidor estará disponível em `http://localhost:3000`.
+
+## Rotas do WhatsApp
+
+### Inicializar conexão
+`POST /api/whatsapp/initialize`
+
+Inicializa a conexão com o WhatsApp e exibe um QR Code no terminal para escanear.
+
+### Verificar status
+`GET /api/whatsapp/status`
+
+Retorna o status atual da conexão com o WhatsApp.
+
+### Enviar mensagem
+`POST /api/whatsapp/send`
+```json
+{
+  "to": "5511999999999",
+  "content": "Olá, como posso ajudar?"
+}
+```
+
+--- 
