@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { Message, Conversation } = require('../models');
+const aiManager = require('./ai/AIManager');
 
 class WhatsAppService {
     constructor() {
@@ -60,7 +61,7 @@ class WhatsAppService {
                     }
 
                     // Salvar mensagem recebida
-                    await Message.create({
+                    const incomingMessage = await Message.create({
                         conversationId: conversation.id,
                         content: message.body,
                         direction: 'incoming',
@@ -73,12 +74,33 @@ class WhatsAppService {
                         }
                     });
 
-                    // TODO: Processar mensagem com IA e enviar resposta
-                    // Por enquanto, vamos apenas ecoar a mensagem
-                    await this.sendMessage(phoneNumber, `Eco: ${message.body}`);
+                    // Buscar histórico de mensagens para contexto
+                    const messageHistory = await Message.findAll({
+                        where: { conversationId: conversation.id },
+                        order: [['createdAt', 'ASC']],
+                        limit: 10
+                    });
+
+                    // Preparar contexto para a IA
+                    const context = {
+                        history: messageHistory.map(msg => ({
+                            role: msg.direction === 'incoming' ? 'user' : 'model',
+                            content: msg.content
+                        })),
+                        conversationId: conversation.id,
+                        phoneNumber: phoneNumber
+                    };
+
+                    // Gerar resposta usando IA
+                    const aiResponse = await aiManager.generateResponse(message.body, context);
+
+                    // Enviar resposta
+                    await this.sendMessage(phoneNumber, aiResponse);
 
                 } catch (error) {
                     console.error('Erro ao processar mensagem recebida:', error);
+                    // Enviar mensagem de erro amigável
+                    await this.sendMessage(message.from, 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente mais tarde.');
                 }
             });
 
