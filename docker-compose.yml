@@ -15,6 +15,7 @@ services:
       - DB_PASSWORD=AtenBot@2024!
       - DB_PORT=5432
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-2.5-flash
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - REDIS_HOST=redis

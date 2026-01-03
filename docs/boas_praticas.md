@@ -55,3 +55,9 @@ Para facilitar a manutenção, organizamos o código em camadas:
 2.  **Suba a Evolution API**: Configure um `docker-compose.yml` com Postgres, Redis e Evolution API.
 3.  **Crie o Webhook**: Um endpoint POST que recebe o JSON da Evolution.
 4.  **Lógica Multi-cliente**: Adapte o banco para saber que a mensagem X pertence ao Cliente Y.
+
+
+
+---
+sim pode iniciar e deixe no ar sempre pense se o que esta fazendo esta correto evite deixar codigo herdado mas cuide com o que voce exclui,  se ja quiser seguir boas prasticas e deixar pronto e documentado durante essa implementação um modo de usar agentes de apis separadas para automatizar e agilizar o processo , lembrando que nao deve afetar a funcionalidade atual deve apenas ser uma boa pratica
+
