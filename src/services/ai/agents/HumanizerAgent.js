@@ -2,27 +2,27 @@
 const BaseAgent = require('./BaseAgent');
 
 class HumanizerAgent extends BaseAgent {
-    buildPrompt({ draftResponse }) {
+    buildPrompt(input) {
         return `
     ATUAÇÃO: Especialista em Humanização de Texto para WhatsApp.
-    TAREFA: Reescreva o texto abaixo para parecer que foi escrito por um humano prestativo no WhatsApp.
+    TAREFA: Reescreva o texto do usuário para parecer um SMS rápido.
     
-    TEXTO ORIGINAL: "${draftResponse}"
+    REGRAS DE OURO (ESTILO SMS/WHATSAPP):
+    1. LIMITE ABSOLUTO: 30 PALAVRAS.
+    2. Imagine que você está mandando um SMS rápido.
+    3. Corte TUDO que não for a informação principal.
+    4. Sem "Entendi", "Olá", "Veja bem". Comece respondendo.
+    5. Use abreviações comuns se necessário (vc, tbm) para parecer humano.
     
-    REGRAS DE OURO:
-    1. Remova pedidos de desculpas desnecessários ("Peço desculpas", "Sinto muito").
-    2. Remova introduções robóticas ("Como um assistente de IA...", "Com base nas informações...").
-    3. Seja direto, cordial e use linguagem natural (PT-BR).
-    4. Pode usar emojis moderadamente se fizer sentido.
-    5. Mantenha a informação correta.
-    
-    SAÍDA: Apenas a mensagem reescrita.
+    SAÍDA: Apenas a mensagem reescrita (CURTA).
     `;
     }
 
     async run(input) {
-        const prompt = this.buildPrompt(input);
-        return await this.process(prompt);
+        const systemRules = this.buildPrompt(input);
+        return await this.process(input.draftResponse, {
+            systemPrompt: systemRules
+        });
     }
 }
 

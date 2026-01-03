@@ -4,10 +4,10 @@ const HumanizerAgent = require('./agents/HumanizerAgent');
 const HistoryService = require('../history.service'); // Import HistoryService
 
 class MultiAgentService {
-    constructor(provider, rateLimiter) {
-        this.generator = new GeneratorAgent('Generator', provider, rateLimiter);
-        this.verifier = new VerifierAgent('Verifier', provider, rateLimiter);
-        this.humanizer = new HumanizerAgent('Humanizer', provider, rateLimiter);
+    constructor(provider) {
+        this.generator = new GeneratorAgent('Generator', provider);
+        this.verifier = new VerifierAgent('Verifier', provider);
+        this.humanizer = new HumanizerAgent('Humanizer', provider);
     }
 
     async processPipeline(message, context) {

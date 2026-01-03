@@ -1,100 +1,80 @@
-const aiManager = require('../services/ai/AIManager');
-const evolutionService = require('../services/evolution.service');
+const QueueService = require('../services/queue/QueueService');
 
-// Map simplistic (in-memory) to track processing to avoid loops? 
-// Ideally use Redis in production as per docs.
+// Simple In-Memory Deduplication for Webhook Retries
+const processedMessages = new Set();
 
 class WebhookController {
-    constructor() {
-        this.processedMessages = new Set();
-    }
-
     async handleWebhook(req, res) {
         try {
-            console.log('DEBUG: Webhook Received Headers:', JSON.stringify(req.headers));
-            console.log('DEBUG: Webhook Received Body:', JSON.stringify(req.body, null, 2));
-            const { type, data, instance, event } = req.body;
+            const { event, instance, data, sender } = req.body;
             // Support both 'type' and 'event' (Evolution versions vary)
-            const eventType = type || event;
+            const eventType = req.body.type || event;
 
-            console.log('DEBUG: Parsed eventType:', eventType);
+            // 1. Security & Basic Filters
+            const apiKey = req.headers['apikey'] || req.headers['x-api-key'];
+            const validKey = process.env.EVOLUTION_API_KEY || 'atenbot-global-key';
 
-            // 1. Basic Validation
+            // Optional: Enable strict checking if env var is set
+            if (process.env.WEBHOOK_SECURITY_ENABLED === 'true' && apiKey !== validKey) {
+                return res.status(401).json({ status: 'unauthorized' });
+            }
+
             if (!eventType || !data) {
-                console.log('DEBUG: Invalid Payload - missing eventType or data');
-                return res.status(400).json({ status: 'ignored', reason: 'invalid_payload' });
+                return res.status(200).json({ status: 'ignored_invalid' });
             }
-
-            // 2. Ignore non-message events or messages from me
             if (eventType !== 'messages.upsert' && eventType !== 'MESSAGES_UPSERT') {
-                console.log('DEBUG: Ignored event type:', eventType);
-                return res.status(200).json({ status: 'ignored', reason: 'not_upsert' });
+                return res.status(200).json({ status: 'ignored_type' });
+            }
+            if (data.key.fromMe) {
+                return res.status(200).json({ status: 'ignored_from_me' });
             }
 
-            const messageKey = data.key;
-            if (this.processedMessages.has(messageKey.id)) {
-                console.log('DEBUG: Duplicate message ignored:', messageKey.id);
-                return res.status(200).json({ status: 'ignored', reason: 'duplicate' });
+            // 2. Extract Data
+            const remoteJid = data.key.remoteJid;
+            const pushName = data.pushName || sender || 'Usuário';
+            const message = data.message;
+            const messageId = data.key.id;
+
+            // Deduplication Check
+            if (processedMessages.has(messageId)) {
+                console.log(`[Webhook] Ignoring Duplicate Message ID: ${messageId}`);
+                return res.status(200).json({ status: 'ignored_duplicate' });
             }
-            this.processedMessages.add(messageKey.id);
-            // Cleanup cache after 10s
-            setTimeout(() => this.processedMessages.delete(messageKey.id), 10000);
-            const fromMe = messageKey.fromMe;
+            processedMessages.add(messageId);
+            // Clear from memory after 60 seconds
+            setTimeout(() => processedMessages.delete(messageId), 60000);
 
-            if (fromMe) {
-                return res.status(200).json({ status: 'ignored', reason: 'from_me' });
+            // 3. Audio Detection (Base64 Strategy)
+            const isAudio = !!message.audioMessage;
+            let base64Audio = null;
+
+            if (isAudio && message.audioMessage?.base64) {
+                base64Audio = message.audioMessage.base64;
+            } else if (isAudio) {
+                console.log('[Webhook DEBUG] Audio Message Keys:', Object.keys(message.audioMessage));
             }
 
-            // 3. Extract Info
-            const remoteJid = messageKey.remoteJid; // The user phone number
-            const pushName = data.pushName || 'Usuário';
-            const messageContent = data.message?.conversation || data.message?.extendedTextMessage?.text || '';
+            console.log(`[Webhook] Enqueuing Job: ${pushName} (${remoteJid}) - Audio: ${isAudio}`);
 
-            if (!messageContent) {
-                // Could be audio/image/sticker. Doing text-only for MVP refactor first safely.
-                return res.status(200).json({ status: 'ignored', reason: 'no_text_content' });
-            }
+            // 4. FIRE AND FORGET (Queue)
+            await QueueService.addJob({
+                remoteJid,
+                pushName,
+                message,
+                isAudio,
+                base64Audio,
+                instance
+            });
 
-            console.log(`[Message] Instance: ${instance} | User: ${pushName} (${remoteJid}) | Msg: ${messageContent}`);
-
-            // 4. Send "Composing" or processing status (Optional/Async)
-            // await evolutionService.sendPresence(instance, remoteJid, 'composing');
-
-            // 5. AI Processing (This should ideally be queued)
-            // Using existing AIManager logic logic, but we need to adapt it.
-            // Assuming AIManager has a method to process text.
-            // We wrap this in a background promise so we don't timeout the webhook
-
-            this.processBackground(instance, remoteJid, pushName, messageContent);
-
+            // 5. Zero Latency Response
             return res.status(200).json({ status: 'queued' });
 
         } catch (error) {
             console.error('Webhook Error:', error);
-            return res.status(500).json({ error: 'internal_error' });
+            // Always return 200 to prevent WhatsApp retries on our internal errors
+            return res.status(200).json({ status: 'error_handled' });
         }
     }
-
-    async processBackground(instance, remoteJid, pushName, message) {
-        try {
-            // Calling the AI Service
-            // Note: We need to ensure we pass the 'instance' (tenant) context if we want multi-tenancy db
-            const responseText = await aiManager.processMessage({
-                userId: remoteJid, // Mapping phone to userId for now
-                userName: pushName,
-                message: message,
-                tenantId: instance
-            });
-
-            if (responseText) {
-                await evolutionService.sendText(instance, remoteJid, responseText);
-            }
-        } catch (err) {
-            console.error(`Error processing background message for ${remoteJid}:`, err);
-            await evolutionService.sendText(instance, remoteJid, "Só um momento, já atenderemos.");
-        }
-    }
-
 }
 
 module.exports = new WebhookController();

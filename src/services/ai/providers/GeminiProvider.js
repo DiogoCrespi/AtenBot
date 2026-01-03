@@ -4,18 +4,24 @@ const BaseProvider = require('./BaseProvider');
 class GeminiProvider extends BaseProvider {
   constructor(config) {
     super(config);
+    this.keys = [config.apiKey];
+    if (config.apiKeyBackup) {
+      this.keys.push(config.apiKeyBackup);
+    }
+    this.currentKeyIndex = 0;
     this.model = null;
     this.initialize();
   }
 
   initialize() {
     try {
-      if (!this.config.apiKey) {
+      const currentKey = this.keys[this.currentKeyIndex];
+      if (!currentKey) {
         throw new Error('API Key do Gemini não configurada no construtor');
       }
 
-      console.log('Inicializando Gemini com modelo:', this.config.model || 'gemini-2.5-flash');
-      const genAI = new GoogleGenerativeAI(this.config.apiKey);
+      console.log(`Inicializando Gemini (Key Index: ${this.currentKeyIndex}) com modelo:`, this.config.model || 'gemini-2.5-flash');
+      const genAI = new GoogleGenerativeAI(currentKey);
       this.model = genAI.getGenerativeModel({
         model: this.config.model || 'gemini-2.5-flash'
       });
@@ -24,6 +30,15 @@ class GeminiProvider extends BaseProvider {
       console.error('Erro ao inicializar Gemini:', error.message);
       throw error;
     }
+  }
+
+  rotateKey() {
+    if (this.keys.length <= 1) return false;
+
+    console.warn(`[GeminiProvider] Rotating API Key due to error...`);
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.keys.length;
+    this.initialize();
+    return true;
   }
 
   async validateConfig() {
@@ -69,58 +84,80 @@ class GeminiProvider extends BaseProvider {
   }
 
   async generateResponse(message, context = {}) {
-    try {
-      await this.validateConfig();
+    const maxAttempts = this.keys.length; // Try each key once
+    let lastError = null;
 
-      console.log('Gerando resposta com Gemini para mensagem:', message.substring(0, 50) + '...');
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        await this.validateConfig();
 
-      // Formatar histórico de mensagens
-      const formattedHistory = this.formatChatHistory(context.history || []);
-      console.log('Histórico formatado:', JSON.stringify(formattedHistory, null, 2));
-
-      // Criar o conteúdo da requisição com o prompt do sistema e histórico
-      const contents = [
-        {
-          role: 'user',
-          parts: [{
-            text: this.getSystemPrompt()
-          }]
-        },
-        {
-          role: 'model',
-          parts: [{
-            text: 'Entendi. Estou pronto para ajudar com orientações jurídicas iniciais.'
-          }]
-        },
-        ...formattedHistory,
-        {
-          role: 'user',
-          parts: [{
-            text: message
-          }]
+        // Only log on first attempt to avoid noise
+        if (attempt === 0) {
+          const msgLog = message ? message.substring(0, 50) : '[Multimodal Content]';
+          console.log('Gerando resposta com Gemini para mensagem:', msgLog + '...');
+        } else {
+          console.log(`Tentativa ${attempt + 1} com nova chave...`);
         }
-      ];
 
-      // Gerar resposta
-      const result = await this.model.generateContent({
-        contents: contents,
-        generationConfig: {
-          temperature: this.config.temperature || 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: this.config.maxTokens || 1000,
+        // Formatar histórico de mensagens
+        const formattedHistory = this.formatChatHistory(context.history || []);
+
+        // Determine System Prompt (Dynamic or Default)
+        const systemInstruction = context.systemPrompt || this.getSystemPrompt();
+
+        // Criar o conteúdo da requisição
+        let userPart;
+        if (context.multimodal) {
+          userPart = { role: 'user', parts: context.multimodal };
+        } else {
+          userPart = { role: 'user', parts: [{ text: message || '' }] };
         }
-      });
 
-      const response = await result.response;
-      const text = response.text();
+        const contents = [
+          { role: 'user', parts: [{ text: systemInstruction }] },
+          { role: 'model', parts: [{ text: 'Entendi.' }] },
+          ...formattedHistory,
+          userPart
+        ];
 
-      console.log('Resposta gerada com sucesso:', text.substring(0, 50) + '...');
-      return text;
-    } catch (error) {
-      console.error('Erro ao gerar resposta com Gemini:', error.message);
-      throw error;
+        // Gerar resposta
+        const result = await this.model.generateContent({
+          contents: contents,
+          generationConfig: {
+            temperature: this.config.temperature || 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: this.config.maxTokens || 8000,
+          }
+        });
+
+        const response = await result.response;
+        const text = response.text();
+
+        console.log('Resposta gerada com sucesso:', text.substring(0, 50) + '...');
+        return text;
+
+      } catch (error) {
+        console.error(`Erro ao gerar resposta com Gemini (Tentativa ${attempt + 1}/${maxAttempts}):`, error.message);
+        lastError = error;
+
+        // Check for Quota/Permission errors to trigger rotation
+        const isQuotaError = error.message.includes('429') ||
+          error.message.includes('Quota') ||
+          error.message.includes('Resource has been exhausted') ||
+          error.message.includes('403');
+
+        if (isQuotaError && this.rotateKey()) {
+          continue; // Retry with new key
+        }
+
+        // If not rotation-worthy or rotation failed (no more keys), break
+        break;
+      }
     }
+
+    // If we land here, all attempts failed
+    throw lastError;
   }
 }
 

@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const syncDatabase = require('./config/syncDatabase');
 const webhookController = require('./controllers/webhook.controller');
+// Initialize Queue Workers
+require('./services/queue/WorkerService');
 
 // Log para verificar variáveis de ambiente
 console.log('Variáveis de ambiente carregadas:', {

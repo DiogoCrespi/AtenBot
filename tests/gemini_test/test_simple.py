@@ -6,7 +6,7 @@ from google.api_core import exceptions
 
 # Configure API Key (Directly for testing, avoiding env var issues)
 # User provided key: AIzaSyBYiVvbMhHm-DfaPMoX1yVlRReOX_1iixU
-API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBYiVvbMhHm-DfaPMoX1yVlRReOX_1iixU")
+API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDEZ429SdUHR8jbLLQwgMOUGBPXJVhvD4w")
 genai.configure(api_key=API_KEY)
 
 def list_models():

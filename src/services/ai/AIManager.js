@@ -38,20 +38,12 @@ class AIManager {
   }
 }
 
-const RateLimiter = require('../../utils/RateLimiter');
-
-// Define rate limit for Gemini Free Tier (e.g., 6 RPM to be very safe, or 10)
-const rateLimiter = new RateLimiter(6);
-
-// Singleton instance
-const aiManager = new AIManager();
-
 // Configuration centralization
 // We trust process.env as the source of truth
 const geminiConfig = {
   apiKey: process.env.GEMINI_API_KEY,
   model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-  maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '1000'),
+  maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '8000'),
   temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
 };
 
@@ -63,21 +55,14 @@ console.log('Configuração do Gemini (AIManager):', {
 const geminiProvider = new GeminiProvider(geminiConfig);
 aiManager.registerProvider('gemini', geminiProvider);
 
-// Override processMessage to use RateLimiter
+// Override processMessage to use Pipeline ONLY (called by WebhookController background fallback if needed)
 aiManager.processMessage = async function ({ userId, userName, message, tenantId }) {
-  console.log(`AI Processing Request Queued for ${userId} [${userName}]`);
-
-  return await rateLimiter.schedule(async () => {
-    console.log(`AI Processing Started for ${userId}`);
-    return await this.generateResponse(message, { userId, userName });
-  });
+  // Legacy support or fallback. Ideally use Queue/Worker directly.
+  return await geminiProvider.generateResponse(message, { userId, userName });
 };
 
 // Add adapter for WebhookController
-aiManager.processMessage = async function ({ userId, userName, message, tenantId }) {
-  console.log(`AI Processing for ${userId} [${userName}]`);
-  // Pass minimal context. In future, we could load history from DB here.
-  return await this.generateResponse(message, { userId, userName });
-};
+// [DELETED] Duplicate legacy processMessage removed to enforce Pipeline usage.
+// aiManager.processMessage = async function ({ userId, userName, message, tenantId }) { ... }
 
 module.exports = aiManager; 
