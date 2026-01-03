@@ -2,35 +2,27 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const syncDatabase = require('./config/syncDatabase');
-const userRoutes = require('./routes/userRoutes');
-const conversationRoutes = require('./routes/conversationRoutes');
-const messageRoutes = require('./routes/messageRoutes');
-const whatsappRoutes = require('./routes/whatsappRoutes');
+const webhookController = require('./controllers/webhook.controller');
 
 // Log para verificar variáveis de ambiente
 console.log('Variáveis de ambiente carregadas:', {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Configurada' : 'Não configurada',
-  DB_NAME: process.env.DB_NAME,
-  DB_HOST: process.env.DB_HOST
+  EVOLUTION_API_URL: process.env.EVOLUTION_API_URL
 });
 
 const app = express();
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increased limit for potential media
 
-// Rotas
-app.use('/api/users', userRoutes);
-app.use('/api/conversations', conversationRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/whatsapp', whatsappRoutes);
+// Rota de Webhook (Principal)
+app.post('/webhook', (req, res) => webhookController.handleWebhook(req, res));
 
 // Rota de teste
 app.get('/', (req, res) => {
-  res.json({ message: 'AtenBot API está funcionando!' });
+  res.json({ message: 'AtenBot API (Evolution) is active!' });
 });
 
 // Inicialização
@@ -43,8 +35,8 @@ async function startServer() {
 
     // Inicia o servidor
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`📝 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🚀 Servidor AtenBot rodando na porta ${PORT}`);
+      console.log(`🔗 Webhook URL: http://localhost:${PORT}/webhook`);
     });
   } catch (error) {
     console.error('❌ Erro ao iniciar o servidor:', error);

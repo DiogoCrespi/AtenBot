@@ -14,10 +14,10 @@ class GeminiProvider extends BaseProvider {
         throw new Error('API Key do Gemini não configurada no construtor');
       }
 
-      console.log('Inicializando Gemini com modelo:', this.config.model || 'gemini-2.0-flash');
+      console.log('Inicializando Gemini com modelo:', this.config.model || 'gemini-2.5-flash');
       const genAI = new GoogleGenerativeAI(this.config.apiKey);
-      this.model = genAI.getGenerativeModel({ 
-        model: this.config.model || 'gemini-2.0-flash'
+      this.model = genAI.getGenerativeModel({
+        model: this.config.model || 'gemini-2.5-flash'
       });
       console.log('Gemini inicializado com sucesso');
     } catch (error) {
@@ -114,7 +114,7 @@ class GeminiProvider extends BaseProvider {
 
       const response = await result.response;
       const text = response.text();
-      
+
       console.log('Resposta gerada com sucesso:', text.substring(0, 50) + '...');
       return text;
     } catch (error) {

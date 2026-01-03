@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AtenBot QR Code Scanner</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        #qr {
+            border: 5px solid #333;
+            padding: 10px;
+            display: inline-block;
+            min-width: 200px;
+            min-height: 200px;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AtenBot WhatsApp Connection</h1>
+    <p>Scan this QR code to connect your bot.</p>
+    <div id="qr">Loading QR Code...</div>
+    <div class="status" id="status">Connecting to API...</div>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+        const INSTANCE = 'atenbot';
+        const API_KEY = 'atenbot-global-key';
+
+        async function fetchQR() {
+            try {
+                const response = await fetch(`${API_URL}/instance/connect/${INSTANCE}`, {
+                    headers: { 'apikey': API_KEY }
+                });
+                const data = await response.json();
+
+                if (data.base64) {
+                    document.getElementById('qr').innerHTML = `<img src="${data.base64}" />`;
+                    document.getElementById('status').innerText = "QR Code received! Scan it now.";
+                    // Stop polling if success (or keep polling to update dynamic QR?)
+                    // WhatsApp QRs expire, so keep polling is better but careful with rate limit.
+                } else if (data.qrcode && data.qrcode.base64) {
+                    document.getElementById('qr').innerHTML = `<img src="${data.qrcode.base64}" />`;
+                } else {
+                    document.getElementById('status').innerText = "Waiting for QR Code... (Status: " + JSON.stringify(data) + ")";
+                }
+            } catch (error) {
+                document.getElementById('status').innerText = "Error: " + error.message + ". Ensure Evolution API is running.";
+            }
+        }
+
+        // Poll every 3 seconds
+        setInterval(fetchQR, 3000);
+        fetchQR();
+    </script>
+</body>
+
+</html>

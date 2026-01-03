@@ -1,18 +1,83 @@
-version: '3.8'
+version: '3.3'
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: atenbot_postgres
+  # O Cérebro do AtenBot (Recebe Webhooks)
+  atenbot-api:
+    build: .
+    container_name: atenbot-api
     restart: always
     environment:
-      POSTGRES_DB: atenbot
+      - PORT=3000
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_NAME=atenbot
+      - DB_USER=postgres
+      - DB_PASSWORD=AtenBot@2024!
+      - DB_PORT=5432
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - REDIS_HOST=redis
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - evolution-api
+
+  # Gateway de WhatsApp
+  evolution-api:
+    build: ./evolution-api-source
+    container_name: evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - DOCKER_NAME=evolution-api
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:AtenBot%402024%21@postgres:5432/evolution
+      - DATABASE_CLIENT_NAME=evolution_exchange
+      - RABBITMQ_ENABLED=false
+      - SQ_ENABLED=false
+      - WEBSOCKET_ENABLED=true
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - AUTHENTICATION_API_KEY=atenbot-global-key # Chave fixa para facilitar o uso
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+    depends_on:
+      - postgres
+      - redis
+
+  # Banco de Dados (Compartilhado ou Separado)
+  postgres:
+    image: postgres:15
+    container_name: atenbot-postgres
+    restart: always
+    environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: AtenBot@2024!
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: atenbot # Banco default existente
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Redis para Filas e Cache
+  redis:
+    image: redis:alpine
+    container_name: atenbot-redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
 
 volumes:
-  postgres_data: 
+  postgres_data:
+  redis_data:
+  evolution_instances:
+  evolution_store:
