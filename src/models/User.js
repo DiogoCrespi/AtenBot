@@ -27,6 +27,10 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('admin', 'user'),
     defaultValue: 'user',
   },
+  plan_type: {
+    type: DataTypes.ENUM('free', 'pro', 'enterprise'),
+    defaultValue: 'free',
+  },
   apiKey: {
     type: DataTypes.STRING,
     unique: true,

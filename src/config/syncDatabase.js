@@ -1,5 +1,6 @@
 const sequelize = require('./database');
 const models = require('../models');
+const bcrypt = require('bcryptjs');
 
 async function syncDatabase(retries = 20, delay = 5000) {
   for (let i = 0; i < retries; i++) {
@@ -13,15 +14,18 @@ async function syncDatabase(retries = 20, delay = 5000) {
 
       console.log('✅ Banco de dados sincronizado com sucesso!');
 
-      // Cria um usuário admin padrão se não existir
+      // Cria ou atualiza usuário admin padrão
       const { User } = models;
-      const adminExists = await User.findOne({ where: { email: 'admin@atenbot.com' } });
+      const adminEmail = 'admin@atenbot.com';
+      const adminPassword = await bcrypt.hash('AtenBot@2024!', 10);
+
+      const adminExists = await User.findOne({ where: { email: adminEmail } });
 
       if (!adminExists) {
         await User.create({
           name: 'Administrador',
-          email: 'admin@atenbot.com',
-          password: 'AtenBot@2024!',
+          email: adminEmail,
+          password: adminPassword,
           role: 'admin',
           apiKey: 'admin-' + Date.now(),
           settings: {
@@ -31,6 +35,11 @@ async function syncDatabase(retries = 20, delay = 5000) {
           },
         });
         console.log('👤 Usuário admin criado com sucesso!');
+      } else {
+        // Force update password for development/recovery
+        adminExists.password = adminPassword;
+        await adminExists.save();
+        console.log('👤 Senha do Admin atualizada com sucesso!');
       }
 
       return; // Sucesso, sai da função

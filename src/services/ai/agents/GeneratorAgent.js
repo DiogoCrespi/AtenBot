@@ -16,7 +16,9 @@ class GeneratorAgent extends BaseAgent {
     }
 
     async run(input, context = {}) {
-        const systemRules = this.buildPrompt(input);
+        // PRIORITIZE USER PROMPT (Context) OVER HARDCODED DEFAULT
+        const systemRules = context.systemPrompt || this.buildPrompt(input);
+
         // Pass the rules as systemPrompt, and the actual message as content
         return await this.process(input.message, {
             ...context,

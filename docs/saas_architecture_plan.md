@@ -7,7 +7,7 @@ The goal is to transform AtenBot into a multi-tenant SaaS platform where users c
 ## 2. Core Features (Scope)
 
 ### Phase 1: MVP (Minimum Viable Product)
-- **User Authentication**: Sign up/Login (Email/Password).
+
 - **Dashboard**: View active instances, connection status (QR Code status).
 - **Instance Management**: Create new WhatsApp instance (User = Tenant).
 - **QR Scanning**: Display QR Code from Evolution API for the user to scan.
@@ -15,7 +15,7 @@ The goal is to transform AtenBot into a multi-tenant SaaS platform where users c
     - Set custom system prompts/personas (e.g., "Support", "Sales").
     - "Stealth Mode" toggle (Hide "I am an AI" disclosures).
 - **Chat Interface**: View incoming messages and intervene (Human Handoff).
-
+- last **User Authentication**: Sign up/Login (Email/Password).
 ### Phase 2: Commercialization
 - **Billing Integration**: Stripe/MercadoPago for subscriptions.
 - **Usage Limits**: Rate limiting per user tier.

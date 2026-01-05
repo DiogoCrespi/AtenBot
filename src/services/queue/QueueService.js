@@ -1,5 +1,6 @@
 
 const { Queue } = require('bullmq');
+const IORedis = require('ioredis');
 
 // Redis Connection Config
 const connection = {
@@ -7,12 +8,16 @@ const connection = {
     port: parseInt(process.env.REDIS_PORT || '6379')
 };
 
+// Create a shared Redis client for manual operations (Buffering)
+const redisClient = new IORedis(connection);
+
 // Initialize Queue
 const messageQueue = new Queue('atenbot-queue', { connection });
 
 console.log('[QueueService] AtenBot Queue Initialized connected to', connection.host);
 
 module.exports = {
+    redisClient, // Export raw client
     /**
      * Adds a job to the queue (Fire-and-Forget)
      * @param {Object} data - The message payload

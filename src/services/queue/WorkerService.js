@@ -42,12 +42,12 @@ class WorkerService {
     }
 
     async processJob(job) {
-        let { remoteJid, pushName, message, isAudio, base64Audio } = job.data;
-        console.log(`[Worker] Processing job for ${pushName} (${remoteJid})`);
+        let { remoteJid, pushName, message, isAudio, base64Audio, instance } = job.data;
+        console.log(`[Worker] Processing job for ${pushName} (${remoteJid}) on instance ${instance}`);
 
         try {
             // 1. Send "Composing" presence
-            await this.sendPresence(remoteJid, isAudio ? 'recording' : 'composing');
+            await this.sendPresence(remoteJid, isAudio ? 'recording' : 'composing', instance);
 
             let responseText = '';
 
@@ -101,17 +101,41 @@ class WorkerService {
                     return;
                 }
 
-                // Pipeline: History -> Gen -> Verify -> Humanize -> DB
-                // Note: Context needs to be passed correctly.
+                // 2. CHECK IF BOT IS ACTIVE
+                const { User } = require('../../models');
+                // MVP: Fetch the first user (Admin)
+                const user = await User.findOne();
+
+                if (!user) {
+                    console.error('[Worker] No user found to process message.');
+                    return;
+                }
+
+                if (user.isActive === false) {
+                    console.log(`[Worker] Bot is INACTIVE for user ${user.name}. Ignoring message.`);
+                    return;
+                }
+
+                console.log(`[Worker] Text Message Received: ${text}`);
+
+                // 3. FETCH HISTORY
+                const history = await HistoryService.getHistory(remoteJid, 10);
+
+                // 4. GENERATE AI RESPONSE
+                // Use dynamic system prompt from user settings
+                const systemPrompt = user.settings?.systemPrompt || "Você é o AtenBot, um assistente inteligente. Responda de forma útil e curta.";
+
                 responseText = await multiAgentService.processPipeline(text, {
                     userId: remoteJid,
-                    userName: pushName
+                    userName: pushName,
+                    history: history,
+                    systemPrompt: systemPrompt
                 });
             }
 
             // 3. Send Response via Evolution API
             if (responseText) {
-                await this.sendMessage(remoteJid, responseText);
+                await this.sendMessage(remoteJid, responseText, instance);
             }
 
         } catch (error) {
@@ -120,9 +144,10 @@ class WorkerService {
         }
     }
 
-    async sendPresence(remoteJid, status) {
+    async sendPresence(remoteJid, status, instanceName) {
         try {
-            await axios.post(`${process.env.EVOLUTION_API_URL}/chat/sendPresence/${process.env.EVOLUTION_INSTANCE || 'atenbot'}`, {
+            const instance = instanceName || process.env.EVOLUTION_INSTANCE || 'atenbot';
+            await axios.post(`${process.env.EVOLUTION_API_URL}/chat/sendPresence/${instance}`, {
                 number: remoteJid,
                 presence: status,
                 delay: 1200
@@ -134,15 +159,16 @@ class WorkerService {
         }
     }
 
-    async sendMessage(remoteJid, text) {
+    async sendMessage(remoteJid, text, instanceName) {
         try {
-            await axios.post(`${process.env.EVOLUTION_API_URL}/message/sendText/${process.env.EVOLUTION_INSTANCE || 'atenbot'}`, {
+            const instance = instanceName || process.env.EVOLUTION_INSTANCE || 'atenbot';
+            await axios.post(`${process.env.EVOLUTION_API_URL}/message/sendText/${instance}`, {
                 number: remoteJid,
                 text: text
             }, {
                 headers: { 'apikey': process.env.EVOLUTION_API_KEY }
             });
-            console.log(`[Worker] Response sent to ${remoteJid}`);
+            console.log(`[Worker] Response sent to ${remoteJid} via ${instance}`);
         } catch (error) {
             console.error(`[Worker] Error sending response:`, error.message);
         }

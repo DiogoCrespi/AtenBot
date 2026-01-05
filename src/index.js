@@ -20,7 +20,24 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increased limit for potential media
 
 // Rota de Webhook (Principal)
+// Rota de Webhook (Principal)
+app.use('/webhook', (req, res, next) => {
+  if (req.method === 'POST') return webhookController.handleWebhook(req, res);
+  next();
+});
 app.post('/webhook', (req, res) => webhookController.handleWebhook(req, res));
+
+// Rotas de Autenticação (SaaS)
+const authRoutes = require('./routes/auth.routes');
+app.use('/auth', authRoutes);
+
+// Rotas de Instância (SaaS)
+const instanceRoutes = require('./routes/instance.routes');
+app.use('/instance', instanceRoutes);
+
+// Rotas de Configuração (SaaS)
+const configRoutes = require('./routes/config.routes');
+app.use('/config', configRoutes);
 
 // Rota de teste
 app.get('/', (req, res) => {

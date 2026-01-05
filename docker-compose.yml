@@ -15,7 +15,7 @@ services:
       - DB_PASSWORD=AtenBot@2024!
       - DB_PORT=5432
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_API_KEY_BACKUP=AIzaSyDdZCSPsHY76VPeKPIAGtN7S2fCG6Z5198
+      - GEMINI_API_KEY_BACKUP=${GEMINI_API_KEY_BACKUP}
       - GEMINI_MODEL=gemini-2.5-flash
       - EVOLUTION_API_URL=http://evolution-api:8080
       - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
@@ -26,6 +26,9 @@ services:
       - postgres
       - redis
       - evolution-api
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
 
   # Gateway de WhatsApp
   evolution-api:
@@ -47,6 +50,14 @@ services:
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379/1
       - AUTHENTICATION_API_KEY=atenbot-global-key # Chave fixa para facilitar o uso
+      # Global Webhook Configuration
+      - WEBHOOK_GLOBAL_URL=http://atenbot-api:3000/webhook/evolution
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
+      - WEBHOOK_EVENTS_PRESENCE_UPDATE=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
     volumes:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store

@@ -25,7 +25,10 @@ class MultiAgentService {
         const startTime = Date.now();
 
         // 2. Generation Phase (Pass History in Context)
-        const draft = await this.generator.run({ message }, { history });
+        const draft = await this.generator.run({ message }, {
+            history,
+            systemPrompt: context.systemPrompt // Pass the user-defined prompt
+        });
         console.log(`[Pipeline] Draft: ${draft.substring(0, 50)}...`);
 
         // 3. Verification Phase
